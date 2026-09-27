@@ -25,3 +25,8 @@ jobs:
           gh release list --limit 100 --json tagName --jq '.[].tagName' | while read -r TAG; do
             [ "$TAG" = "$NEW" ] || gh release delete "$TAG" --yes --cleanup-tag
           done
+      - name: Delete older tags
+        run: |
+          gh api "repos/$GH_REPO/tags" --paginate --jq '.[].name' | while read -r TAG; do
+            [ "$TAG" = "$NEW" ] || gh api -X DELETE "repos/$GH_REPO/git/refs/tags/$TAG"
+          done
