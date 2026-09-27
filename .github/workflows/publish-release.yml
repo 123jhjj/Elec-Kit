@@ -1,0 +1,27 @@
+name: Publish release
+on:
+  push:
+    branches: [release-upload]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        run: |
+          APK=$(ls Elec-Kit-*.apk)
+          VERSION=${APK#Elec-Kit-}; VERSION=v${VERSION%.apk}
+          cp "$APK" Elec-Kit.apk
+          gh release delete "$VERSION" --yes --cleanup-tag || true
+          gh release create "$VERSION" Elec-Kit.apk --title "Elec-Kit $VERSION" --target main --latest --notes ""
+          echo "NEW=$VERSION" >> "$GITHUB_ENV"
+      - name: Delete older releases
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | while read -r TAG; do
+            [ "$TAG" = "$NEW" ] || gh release delete "$TAG" --yes --cleanup-tag
+          done
